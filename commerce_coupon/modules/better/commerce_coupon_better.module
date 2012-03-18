@@ -1,0 +1,301 @@
+<?php
+
+/**
+ * @file
+ * Coupon..
+ *
+ * This file contains...
+ */
+
+/**
+ * Definition of all fields supported by this coupon type.
+ */
+function _commerce_coupon_better_fields(&$fields, &$instances) {
+  // Expiration date
+  $fields[] = array(
+    'field_name' => 'commerce_coupon_expire',
+    'type' => 'datetime',
+    'cardinality' => '1',
+    'entity_types' => array('commerce_coupon'),
+    'translatable' => FALSE,
+    'settings' => array(
+      'granularity' => array(
+        'day' => 'day',
+        'hour' => 0,
+        'minute' => 0,
+        'month' => 'month',
+        'second' => 0,
+        'year' => 'year',
+      ),
+    ),
+  );
+
+  $instances[] = array(
+    'field_name' => 'commerce_coupon_expire',
+    'entity_type' => 'commerce_coupon',
+    'label' => t('Expire'),
+    'display' => array(),
+    'widget' => array(
+      'type' => 'date_popup',
+    ),
+  );
+
+  // Number of uses
+  $fields[] = array(
+    'field_name' => 'commerce_coupon_number_of_uses',
+    'type' => 'number_integer',
+    'cardinality' => 1,
+    'entity_types' => array('commerce_coupon'),
+    'translatable' => FALSE,
+  );
+
+  $instances[] = array(
+    'field_name' => 'commerce_coupon_number_of_uses',
+    'entity_type' => 'commerce_coupon',
+    'label' => t('Number of Uses'),
+    'display' => array(),
+    'settings' => array(
+      'min' => '0',
+    ),
+    'default_value' => array(
+      0 => array(
+        'value' => 1
+      )
+    ),
+  );
+
+  // Unique usage
+  $fields[] = array(
+    'field_name' => 'commerce_coupon_usage',
+    'type' => 'list_integer',
+    'cardinality' => '1',
+    'entity_types' => array('commerce_coupon'),
+    'translatable' => FALSE,
+    'settings' => array(
+      'allowed_values' => array(
+        0 => 'No',
+        1 => 'Yes',
+      ),
+      'allowed_values_function' => '',
+    ),
+  );
+
+  $instances[] = array(
+    'field_name' => 'commerce_coupon_usage',
+    'entity_type' => 'commerce_coupon',
+    'label' => t('Unique usage per user'),
+    'required' => TRUE,
+    'display' => array(),
+    'widget' => array(
+      'type' => 'options_buttons',
+    ),
+  );
+
+  // Referenced product
+  $fields[] = array(
+    'field_name' => 'commerce_coupon_product',
+    'type' => 'commerce_product_reference',
+    'cardinality' => '-1',
+    'entity_types' => array('commerce_coupon'),
+    'translatable' => FALSE,
+  );
+
+  $instances[] = array(
+    'field_name' => 'commerce_coupon_product',
+    'entity_type' => 'commerce_coupon',
+    'label' => t('Product'),
+    'display' => array(),
+    'settings' => array(
+      'field_injection' => 1,
+      'referenceable_types' => array(
+        'product' => 'product',
+      ),
+    ),
+    'widget' => array(
+      'type' => 'options_select',
+    ),
+  );
+
+  // Fixed amount
+  $fields[] = array(
+    'field_name' => 'commerce_coupon_fixed_amount',
+    'type' => 'commerce_price',
+    'cardinality' => 1,
+    'entity_types' => array('commerce_coupon'),
+    'translatable' => FALSE,
+  );
+  
+  $instances[] = array(
+    'field_name' => 'commerce_coupon_fixed_amount',
+    'entity_type' => 'commerce_coupon',
+    'label' => t('Fixed Amount'),
+    'required' => TRUE,
+    'settings' => array(),
+    'widget' => array(
+      'type' => 'commerce_price_full',
+      'settings' => array(
+        'currency_code' => 'default',
+      ),
+    ),
+    'default_value' => array(
+      array(
+        'amount' => 0,
+        'currency_code' => commerce_default_currency(),
+        'data' => array(
+          'components' => array(),
+        ),
+      ),
+    ),
+    'display' => array(),
+  );
+
+
+  // Percentage amount
+  $fields[] = array(
+    'field_name' => 'commerce_coupon_percent_amount',
+    'type' => 'number_decimal',
+    'cardinality' => 1,
+    'entity_types' => array('commerce_coupon'),
+    'translatable' => FALSE,
+    'settings' => array(
+      'decimal_separator' => '.',
+      'precision' => '10',
+      'scale' => '2',
+    ),
+  );
+
+  $instances[] = array(
+    'field_name' => 'commerce_coupon_percent_amount',
+    'entity_type' => 'commerce_coupon',
+    'label' => t('Percentage Amount'),
+    'required' => TRUE,
+    'display' => array(),
+    'settings' => array(
+      'min' => '0',
+      'max' => '100',
+      'suffix' => '%',
+    ),
+  );
+}
+
+/**
+ * Implements hook_commerce_coupon_type_configure().
+ */
+function commerce_coupon_better_commerce_coupon_type_configure($bundle, $reset = FALSE) {
+  // Skip all $bundles except our coupon type
+  if ($bundle != 'better_coupon') return;
+  
+  // Initialize default field and instance data
+  _commerce_coupon_better_fields($fields, $instances);
+
+  // Create or update fields
+  foreach($fields as $data) {
+    // If a field type we know should exist isn't found, clear the field cache.
+    if (!field_info_field_types($data['field_name'])) {
+      field_cache_clear();
+    }
+
+    if (!field_info_field($data['field_name'])) {
+      field_create_field($data);
+    }
+    elseif ($reset) {
+      field_update_field($data);
+    }
+  }
+
+  // Create or update field instances
+  foreach($instances as $data) {
+    $data['bundle'] = $bundle;
+
+    if (!field_info_instance($data['entity_type'], $data['field_name'], $bundle)) {
+      field_create_instance($data);
+    }
+    elseif ($reset) {
+      field_update_instance($data);
+    }
+  }
+  
+  // Configure extra fields for the commerce coupon line item
+  // Field 'commerce_coupon_reference' already exists from commerce_coupon.module
+  if (field_info_field('commerce_coupon_reference')) {
+    $data = array(
+      'field_name' => 'commerce_coupon_reference',
+      'entity_type' => 'commerce_line_item',
+      'bundle' => 'product',
+      'label' => t('Coupon'),
+      'required' => FALSE,
+      'commerce_cart_settings' => array(
+        'field_access' => TRUE,
+      ),
+      'settings' => array(),
+      'display' => array(),
+    );
+    
+    if (!field_info_instance('commerce_line_item', 'commerce_coupon_reference', 'product')) {
+      field_create_instance($data);
+    }
+    else {
+      field_update_instance($data);
+    }
+  }
+}
+
+/**
+ * Implements hook_commerce_order_presave()
+ */
+function commerce_coupon_better_commerce_order_presave($order) {
+  // We need to recalc the coupons every time, because something could be
+  // changed since we add the coupon. Important this hook will be invoked
+  // before the rule event. It can be that the order needs to be stored
+  // twice to avoid incorrect calculations.
+  $order = entity_metadata_wrapper('commerce_order', $order);
+
+  // Recalculate each coupon
+  module_load_include('inc', 'commerce_coupon_better', 'commerce_coupon_better.rules');
+  $coupons = commerce_coupon_get_coupons_by_order($order->order_id->value());
+  foreach ($coupons as $coupon) {
+    commerce_coupon_better_grant_coupon($coupon, $order);
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function commerce_coupon_better_form_alter(&$form, &$form_state, $form_id) {
+  if (strpos($form_id, 'commerce_cart_add_to_cart_form') === FALSE) return;
+  $form['#validate'][] = 'commerce_coupon_better_add_to_cart_validate';
+}
+
+/**
+ * Form validate handler: validate checkout form.
+ */
+function commerce_coupon_better_add_to_cart_validate($form, &$form_state) {
+  global $commerce_coupon_validation_error_message;
+
+  $line_item = entity_metadata_wrapper('commerce_line_item', $form_state['line_item']);
+  if ($code = $line_item->commerce_coupon_reference->value()) {
+    module_load_include('inc', 'commerce_coupon_better', 'commerce_coupon_better.rules');
+    if ($commerce_coupon = commerce_coupon_load_by_code($code)) {
+      commerce_coupon_better_is_valid($commerce_coupon);
+    }
+    else {
+      $commerce_coupon_validation_error_message = t('Coupon does not exist.');
+    }  
+  }
+
+  if ($commerce_coupon_validation_error_message) {
+    form_set_error('line_item_fields][commerce_coupon_reference', $commerce_coupon_validation_error_message);
+  }
+}
+
+/**
+ * Automatically applies a valid coupon code to the cart, from the "Add Cart Widget"
+ */
+function commerce_coupon_better_commerce_cart_product_add($order, $product, $quantity, $line_item) {
+  $line_item = entity_metadata_wrapper('commerce_line_item', $line_item);
+  if ($code = $line_item->commerce_coupon_reference->value()) {
+    if ($commerce_coupon = commerce_coupon_load_by_code($code)) {
+      commerce_coupon_redeem_coupon($commerce_coupon, $order);
+    }
+  }
+}

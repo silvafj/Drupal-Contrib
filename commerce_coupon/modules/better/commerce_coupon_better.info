@@ -1,0 +1,14 @@
+name = Better Coupon
+description = "A coupon type with extended rules and restrictions."
+package = Commerce Coupon
+core = 7.x
+
+dependencies[] = commerce_coupon
+dependencies[] = commerce_product_reference
+dependencies[] = date
+dependencies[] = list
+dependencies[] = number
+dependencies[] = options
+dependencies[] = text
+
+configure = admin/commerce/coupons/types/manage/better_coupon/fields
